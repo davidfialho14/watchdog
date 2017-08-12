@@ -146,7 +146,7 @@ class InotifyEmitter(EventEmitter):
 
             src_path = self._decode_path(event.src_path)
             if event.is_moved_to:
-                if (full_events):
+                if full_events:
                     cls = DirMovedEvent if event.is_directory else FileMovedEvent
                     self.queue_event(cls(None, src_path))
                 else:
@@ -162,7 +162,10 @@ class InotifyEmitter(EventEmitter):
             elif event.is_modify:
                 cls = DirModifiedEvent if event.is_directory else FileModifiedEvent
                 self.queue_event(cls(src_path))
-            elif event.is_delete or (event.is_moved_from and not full_events):
+            elif event.is_delete_self or event.is_move_self:
+                cls = DirDeletedEvent if event.is_directory else FileDeletedEvent
+                self.queue_event(cls(src_path))
+            elif event.is_delete or event.is_moved_from:
                 cls = DirDeletedEvent if event.is_directory else FileDeletedEvent
                 self.queue_event(cls(src_path))
                 self.queue_event(DirModifiedEvent(os.path.dirname(src_path)))
@@ -200,7 +203,7 @@ class InotifyFullEmitter(InotifyEmitter):
     """
     def __init__(self, event_queue, watch, timeout=DEFAULT_EMITTER_TIMEOUT):
         InotifyEmitter.__init__(self, event_queue, watch, timeout)
-        
+
     def queue_events(self, timeout, events=True):
         InotifyEmitter.queue_events(self, timeout, full_events=events)
 
